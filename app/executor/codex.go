@@ -205,7 +205,7 @@ func (c *Codex) tail(raw string) string {
 	return raw[len(raw)-patternTailBytes:]
 }
 
-func (c *Codex) match(text string, patterns []string) string {
+func (p *proc) match(text string, patterns []string) string {
 	lower := strings.ToLower(text)
 	for _, p := range patterns {
 		if strings.Contains(lower, p) {

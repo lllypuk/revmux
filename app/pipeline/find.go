@@ -20,7 +20,12 @@ import (
 
 // executorCodex names the one roster executor whose output is prose rather than stream-json, so its
 // verbatim tee gets a different extension.
-const executorCodex = "codex"
+// executorCodex and executorPi name the roster executors whose output is prose-carrying rather than
+// claude's structured stream, so their attempt tee gets a .log-friendly raw form distinction below.
+const (
+	executorCodex = "codex"
+	executorPi    = "pi"
+)
 
 // maxAttempts is one launch plus one retry. A second failure degrades the source and the run
 // continues, because one flaky agent must not waste every other agent's work.

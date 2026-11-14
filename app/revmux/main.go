@@ -31,6 +31,7 @@ var revision = "unknown"
 const (
 	executorCodex = "codex"
 	executorAgy   = "agy"
+	executorPi    = "pi"
 )
 
 // agentRetryDelay is the floor an agent waits before its one retry, which the pipeline jitters up to
@@ -384,7 +385,7 @@ func (o runOpts) runnerFactory(rc reviewContext) func(pipeline.RunnerSpec) pipel
 	if runner == nil {
 		runner = executor.NewRunner()
 	}
-	claude, codex := executor.NewClaude(runner, eo), executor.NewCodex(runner, eo)
+	claude, codex, pi := executor.NewClaude(runner, eo), executor.NewCodex(runner, eo), executor.NewPi(runner, eo)
 	agy := executor.NewAgy(runner, o.opts.agyOpts(eo))
 	return func(spec pipeline.RunnerSpec) pipeline.Runner {
 		switch spec.Executor {
@@ -392,6 +393,8 @@ func (o runOpts) runnerFactory(rc reviewContext) func(pipeline.RunnerSpec) pipel
 			return codex
 		case executorAgy:
 			return agy
+		case executorPi:
+			return pi
 		}
 		return claude
 	}

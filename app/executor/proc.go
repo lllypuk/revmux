@@ -197,13 +197,19 @@ func (p *proc) readLines(ctx context.Context, r io.Reader, handler func(string))
 
 // childEnv drops the variables that break or misroute a child model CLI. CLAUDECODE always goes:
 // revmux normally runs inside an AI coding session and the child refuses to start as a nested one.
+// The AGTERM_*/PI_* session ids go too: a reviewer inherits them from the terminal that launched
+// revmux and would report its own agent status onto the launching session's sidebar row, and a
+// stack of concurrent reviewers doing that is pure noise.
 func (p *proc) childEnv() []string {
 	src := os.Environ()
 	out := make([]string, 0, len(src))
 	for _, kv := range src {
-		switch name, _, _ := strings.Cut(kv, "="); {
+		name, _, _ := strings.Cut(kv, "=")
+		switch {
 		case name == "CLAUDECODE":
 		case name == "ANTHROPIC_API_KEY" && !p.opts.PreserveAPIKey:
+		case strings.HasPrefix(name, "AGTERM_"):
+		case strings.HasPrefix(name, "PI_SESSION") || name == "PI_CODING_AGENT_SESSION_DIR":
 		default:
 			out = append(out, kv)
 		}

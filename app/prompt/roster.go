@@ -14,6 +14,7 @@ import (
 
 const (
 	executorClaude = "claude"
+	executorPi     = "pi"
 
 	// overrideAgent is the name the --lenses override's single agent carries. It reaches
 	// Finding.sources and becomes agents/<name>.jsonl, so it can never be empty.
@@ -24,9 +25,9 @@ const (
 	ansiDefaultFg = "\x1b[39m"
 )
 
-// the two accepted vocabularies, checked by validate and reported verbatim by `revmux config`.
+// the accepted vocabularies, checked by validate and reported verbatim by `revmux config`.
 var (
-	executors = []string{executorClaude, "codex", "agy"}
+	executors = []string{executorClaude, "codex", "agy", executorPi}
 	efforts   = []string{"low", "medium", "high", "xhigh", "max"}
 )
 
