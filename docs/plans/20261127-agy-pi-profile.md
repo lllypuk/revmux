@@ -103,11 +103,11 @@ The existing executor supplies stream-json input/output, native stage schemas, n
 - Modify outside the repository: `/home/sasha/.config/revmux/config`
 - Create outside the repository: a timestamped backup of the previous `/home/sasha/.config/revmux/config` under `/tmp`
 
-- [ ] Back up `/home/sasha/.config/revmux/config` to a newly created timestamped file under `/tmp` before editing it.
-- [ ] Create `/home/sasha/.config/revmux/prompts/profiles/hybrid.md` from `/home/sasha/.config/revmux/prompts/profiles/pi.md`: update `description:` to describe the multi-runner hybrid panel (four Pi agents plus an agy adversarial peer) and add the `adversarial-agy` entry immediately after `adversarial`; leave every existing model, effort, lens, stage, color and body unchanged.
-- [ ] Update `/home/sasha/.config/revmux/config` to set `profile = hybrid` and adjust its header comment; do not set `max-parallel` or any other knob.
-- [ ] Run `revmux --config-dir /home/sasha/.config/revmux config | jq -e '(.knobs[] | select(.name == "profile" and .value == "hybrid" and .source == "user")) and (.profiles[] | select(.name == "hybrid") | .roster as $r | ($r | length == 5) and any($r[]; .name == "adversarial-agy" and .executor == "agy" and .model == "gemini-4-neon" and .effort == "high" and .lenses == ["adversarial"])) and (.profiles[] | select(.name == "pi") | .roster | length == 4)'` and require it to return `true`.
-- [ ] Diff `hybrid.md` against `pi.md` to confirm that the only differences are the `description:` line and the single added `adversarial-agy` entry, and confirm `pi.md` itself was not modified.
+- [x] Back up `/home/sasha/.config/revmux/config` to a newly created timestamped file under `/tmp` before editing it.
+- [x] Create `/home/sasha/.config/revmux/prompts/profiles/hybrid.md` from `/home/sasha/.config/revmux/prompts/profiles/pi.md`: update `description:` to describe the multi-runner hybrid panel (four Pi agents plus an agy adversarial peer) and add the `adversarial-agy` entry immediately after `adversarial`; leave every existing model, effort, lens, stage, color and body unchanged.
+- [x] Update `/home/sasha/.config/revmux/config` to set `profile = hybrid` and adjust its header comment; do not set `max-parallel` or any other knob.
+- [x] Run `revmux --config-dir /home/sasha/.config/revmux config | jq -e '(.knobs[] | select(.name == "profile" and .value == "hybrid" and .source == "user")) and (.profiles[] | select(.name == "hybrid") | .roster as $r | ($r | length == 5) and any($r[]; .name == "adversarial-agy" and .executor == "agy" and .model == "gemini-4-neon" and .effort == "high" and .lenses == ["adversarial"])) and (.profiles[] | select(.name == "pi") | .roster | length == 4)'` and require it to return `true`.
+- [x] Diff `hybrid.md` against `pi.md` to confirm that the only differences are the `description:` line and the single added `adversarial-agy` entry, and confirm `pi.md` itself was not modified.
 
 ### Task 3: Final automated acceptance
 
