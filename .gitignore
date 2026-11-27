@@ -19,6 +19,8 @@ coverage_no_mocks.out
 # local claude/editor state
 .claude/settings.local.json
 .claude/worktrees/
+/.codex/
+/.impeccable/
 .DS_Store
 
 # python bytecode from the shipped skill scripts
