@@ -105,8 +105,8 @@ revmux this branch, revmux pr 123, re-review after fixes. See [Agent skills](#ag
 
 revmux drives the model CLIs as subprocesses, so whichever ones your profile names must already be installed
 and authenticated: both for `comprehensive`, `focused`, `final`, `grill-me`, `triage` and `expert`, claude
-alone for `claude-only`, codex alone for `codex-only`, and claude, codex and `agy`, the Antigravity CLI, for
-`comprehensive-plus`. An agy agent runs under a 5m idle timeout unless `idle-timeout` is set, since an agy
+alone for `claude-only`, codex alone for `codex-only`, claude, codex and `agy`, the Antigravity CLI, for
+`comprehensive-plus`, `pi` and codex for `pi`, and `pi` and `agy` for `hybrid-final`. An agy agent runs under a 5m idle timeout unless `idle-timeout` is set, since an agy
 thinking step writes nothing and can run past the 2m default the others keep. `preflight.sh` in the shipped
 skill answers it for any profile and any invocation.
 
@@ -271,13 +271,15 @@ codex and agy mix inside one review.
 | `comprehensive-plus` | `comprehensive` plus a second adversarial peer on agy |
 | `focused` | one `bugs` agent plus the codex peer, for a small or time-boxed change |
 | `final` | `bugs+impl` plus the codex peer, nothing below major reported |
+| `hybrid-final` | narrow pre-merge pass over the hybrid stack: `bugs+impl` on `pi/kimi-coding/k3.1-pro:high` plus `adversarial` on `agy/gemini-4-neon:high`, stages on `pi/openai-codex/gpt-6.1-terra:medium`, nothing below major reported |
+| `pi` | three pi agents across different models plus an adversarial codex peer |
 | `claude-only` | the same four lens splits on claude, for a machine with no codex |
 | `codex-only` | the same splits on codex, and synthesis and verify with them |
 | `grill-me` | two lens splits, each run once on claude and once on codex |
 | `expert` | two agents at xhigh, each carrying all eight code lenses |
 | `triage` | a four-way panel over a filed item rather than a diff |
 
-**The nine are starting points, not the menu.** A profile is a file under `prompts/profiles/`, so dropping
+**The eleven shipped profiles are starting points, not the menu.** A profile is a file under `prompts/profiles/`, so dropping
 `.revmux/prompts/profiles/release.md` into a project makes `--profile release` work with no registration step
 anywhere. Its roster can be as wide as you are willing to pay for, each entry carries whatever lenses the job
 needs, and any entry can leave the profile's model for its own. Lenses resolve the same way, so a roster

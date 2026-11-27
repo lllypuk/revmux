@@ -12,8 +12,8 @@ and get the same review, and change a timeout without touching a prompt.
 ### Layout
 
 ```
-prompts/profiles/comprehensive.md   comprehensive-plus.md   focused.md   final.md   claude-only.md   codex-only.md
-prompts/profiles/grill-me.md
+prompts/profiles/comprehensive.md   comprehensive-plus.md   focused.md   final.md   hybrid-final.md
+prompts/profiles/claude-only.md     codex-only.md           pi.md        grill-me.md
 prompts/profiles/expert.md
 prompts/profiles/triage.md
 prompts/synthesis.md   prompts/verify.md

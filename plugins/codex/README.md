@@ -18,8 +18,9 @@ conventions.
 - `claude` — every lens agent and both model stages run on it by default
 - `codex` — needed by any profile, roster entry or stage naming it in a `model:`, which every shipped
   profile except `claude-only` does. `preflight.sh <profile>` answers it for the profile that will run
-- `agy` — needed by `comprehensive-plus` and by any profile, roster entry or stage naming it in a
+- `agy` — needed by `comprehensive-plus`, `hybrid-final`, and by any profile, roster entry or stage naming it in a
   `model:`
+- `pi` — needed by `pi`, `hybrid-final`, and by any profile, roster entry or stage naming it in a `model:`
 - `jq` — optional. `preflight.sh` and `task-state.sh` use it when present and fall back without it
 - `python3` — for `analyze-corpus.py` only, which self mode runs. Standard library alone, no packages
 - a supported terminal, for overlay mode only: Rex, agterm, tmux, Zellij, herdr, kitty, wezterm, cmux,

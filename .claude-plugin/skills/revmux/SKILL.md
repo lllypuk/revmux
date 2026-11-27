@@ -349,6 +349,8 @@ scale numbers are what Step 4's one-line announcement is built from.
 | `comprehensive-plus` | `comprehensive` plus a second adversarial peer on agy | a third vendor's adversarial read; needs agy |
 | `focused` | one `bugs` agent plus codex peer | small or time-boxed |
 | `final` | `bugs+impl` plus codex peer, nothing below major | pre-merge |
+| `hybrid-final` | `bugs+impl` on `pi/kimi-coding/k3.1-pro:high` plus `adversarial` on `agy/gemini-4-neon:high`, stages on `pi/openai-codex/gpt-6.1-terra:medium`, nothing below major | pre-merge / confirming round on the `hybrid` stack; needs `pi` and `agy` |
+| `pi` | three pi agents across different models plus codex peer | pi + codex panel |
 | `claude-only` | the same four lens splits, all on claude | no codex available |
 | `codex-only` | the same four lens splits on codex, and synthesis and verify with them | no claude available |
 | `grill-me` | `bugs+impl` and `architecture+quality`, each once on claude and once on codex, all reading against the change | the user wants it torn apart |
@@ -371,7 +373,8 @@ fails the run.
 | full, everything, deep, thorough, the works | `comprehensive` |
 | comprehensive plus, with agy, add agy, three vendors | `comprehensive-plus` |
 | short, quick, fast, light, small, time-boxed | `focused` |
-| last, pre-merge, before merge, strict | `final` |
+| last, pre-merge, before merge, strict | `final` (or `hybrid-final` when the review runs on the `hybrid` stack) |
+| hybrid final, hybrid pre-merge, hybrid confirm | `hybrid-final` |
 | claude only, no codex, skip codex | `claude-only` |
 | codex only, no claude, codex alone | `codex-only` |
 | grill me, tear it apart, be brutal, no mercy, adversarial | `grill-me` |
@@ -527,7 +530,7 @@ Recommend the option that fits the outcome:
 | `minor` only, verdicts not `unverified` | fix now, or note for later — verification weighed each fix's cost against its consequence, so what is left is a question of timing |
 | `minor` only, verdicts `unverified` | say nothing was checked, and weigh each one before acting — `--no-verify` drops nothing and produces no `immaterial` list |
 | `open_questions` non-empty, no findings | answer them — they are decisions, and the review found nothing to edit |
-| nothing actionable | done, and `--profile final` if a merge is next |
+| nothing actionable | done, and `--profile final` (or `--profile hybrid-final` on the `hybrid` stack) if a merge is next |
 
 Rows are tried in order and the first match wins, so a degraded run outranks whatever it did report.
 
@@ -608,12 +611,12 @@ cannot catch a regression in an area its lenses do not cover.
 
 | the fixes were | profile |
 |---|---|
-| contained edits inside what round 1 flagged | `final` — `bugs+impl` is the fix-confirmation shape, and it reports nothing below major |
-| spilled into tests or structure **the review has not seen** | `comprehensive` — that surface is genuinely new |
-| documentation only | `final` — a doc fix is new prose, and `comprehensive` would review it |
+| contained edits inside what round 1 flagged | `final` (or `hybrid-final` on the `hybrid` stack) — `bugs+impl` is the fix-confirmation shape, and it reports nothing below major |
+| spilled into tests or structure **the review has not seen** | `comprehensive` (or `hybrid` on the `hybrid` stack) — that surface is genuinely new |
+| documentation only | `final` (or `hybrid-final` on the `hybrid` stack) — a doc fix is new prose, and `comprehensive` / `hybrid` would review it |
 | time-boxed, correctness only | `focused` |
 
-**Default to `final` and make `comprehensive` argue for itself.** Across the archived rounds, roughly three quarters of
+**Default to `final` (or `hybrid-final` when reviewing on the `hybrid` stack) and make a wider profile argue for itself.** Across the archived rounds, roughly three quarters of
 everything found is `minor` and minors never converge — they arrive at roughly three a round whatever
 the gating count is doing, including on rounds where gating had already been zero twice over. `final`
 reports nothing below major, and the re-review rounds run under it produced the shortest actionable

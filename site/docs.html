@@ -234,6 +234,8 @@ codex plugin add revmux@revmux</pre>
           <li><code>claude-only</code>: claude alone</li>
           <li><code>codex-only</code>: codex alone</li>
           <li><code>comprehensive-plus</code>: claude, codex and <code>agy</code>, the Antigravity CLI</li>
+          <li><code>pi</code>: <code>pi</code> and codex</li>
+          <li><code>hybrid-final</code>: <code>pi</code> and <code>agy</code>, the Antigravity CLI</li>
         </ul>
         <p>
           A profile or roster entry of your own that names <code>agy</code> needs it installed and signed in
@@ -542,8 +544,8 @@ Reviewing the token exchange path after the provider swap.</pre>
 ├── prompts/
 │   ├── profiles/
 │   │   ├── comprehensive.md  roster front matter + shared preamble + severity bar
-│   │   ├── comprehensive-plus.md  focused.md  final.md  claude-only.md  codex-only.md
-│   │   └── grill-me.md  expert.md  triage.md
+│   │   ├── comprehensive-plus.md  focused.md  final.md  hybrid-final.md  claude-only.md  codex-only.md
+│   │   └── pi.md  grill-me.md  expert.md  triage.md
 │   ├── synthesis.md
 │   └── verify.md
 └── lenses/
@@ -666,6 +668,19 @@ agy/gemini-4-neon:high   an agy model family at one of its efforts</pre>
               <tr>
                 <td>final</td>
                 <td class="prose"><code>bugs+impl</code> plus the codex peer, nothing below major reported</td>
+              </tr>
+              <tr>
+                <td>hybrid-final</td>
+                <td class="prose">
+                  narrow pre-merge pass over the hybrid stack: <code>bugs+impl</code> on
+                  <code>pi/kimi-coding/k3.1-pro:high</code> plus <code>adversarial</code> on
+                  <code>agy/gemini-4-neon:high</code>, stages on <code>pi/openai-codex/gpt-6.1-terra:medium</code>,
+                  nothing below major reported
+                </td>
+              </tr>
+              <tr>
+                <td>pi</td>
+                <td class="prose">three pi agents across different models plus an adversarial codex peer</td>
               </tr>
               <tr>
                 <td>claude-only</td>

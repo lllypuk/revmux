@@ -56,13 +56,13 @@ minors is not an iteration and ends the loop — see Stopping.
    this round's fixes, and it repeats every exclusion the earlier rounds carried — a round that drops one
    is a round the excluded finding gates again. It goes through Step 7's route, rules check included.
 
-Profile per round follows Step 7: `final` when the fixes stayed inside what the last round flagged,
-`comprehensive` when they spilled into tests or structure.
+Profile per round follows Step 7: `final` (or `hybrid-final` on the `hybrid` stack) when the fixes stayed inside what the last round flagged,
+`comprehensive` (or `hybrid` on the `hybrid` stack) when they spilled into tests or structure.
 
-**A round whose fixes were documentation only uses `final`, never `comprehensive`.** A doc fix is new
-prose, and `comprehensive` carries the `docs` lens over it — so the round finds a defect in the sentence
-the last round just wrote, and the loop churns on prose while the code stands still. `final` drops that
-lens and reports nothing below major, which is what a doc-only round is actually confirming.
+**A round whose fixes were documentation only uses `final` (or `hybrid-final` on the `hybrid` stack), never `comprehensive` or `hybrid`.** A doc fix is new
+prose, and the full profiles carry the `docs` lens over it — so the round finds a defect in the sentence
+the last round just wrote, and the loop churns on prose while the code stands still. `final` and `hybrid-final` drop that
+lens and report nothing below major, which is what a doc-only round is actually confirming.
 
 ## Stopping
 
@@ -93,7 +93,7 @@ tags it — `code` is executable logic, and a `.py` aggregation bug is that. Onl
 script *prints* are prose, and a finding about their wording batches with the rest.
 
 Collect those instead: fix them in one batch at the end of the branch, then one confirming round under
-`final` — whose roster carries no `docs` lens and reports nothing below major. If a round's gating
+`final` (or `hybrid-final` on the `hybrid` stack) — whose roster carries no `docs` lens and reports nothing below major. If a round's gating
 findings are *all* in that category, the loop is done even though the count did not fall.
 
 That confirming round is the merge gate, so its `goal.md` says so and states the bar, the way Step 2

@@ -65,8 +65,8 @@ func TestDefaults_EveryProfileResolvesItsRoster(t *testing.T) {
 	set, err := Load(LoadOpts{})
 	require.NoError(t, err)
 	known := set.LensNames()
-	require.Len(t, set.ProfileNames(), 10,
-		"the shipped set is comprehensive, comprehensive-plus, focused, final, claude-only, codex-only, grill-me, "+
+	require.Len(t, set.ProfileNames(), 11,
+		"the shipped set is comprehensive, comprehensive-plus, focused, final, hybrid-final, claude-only, codex-only, grill-me, "+
 			"pi, triage and expert")
 
 	for _, name := range set.ProfileNames() {
@@ -237,18 +237,47 @@ func TestDefaults_TriageRoster(t *testing.T) {
 func TestDefaults_FinalReportsOnlyTheTopTwoSeverities(t *testing.T) {
 	set, err := Load(LoadOpts{})
 	require.NoError(t, err)
-	p, err := set.Profile("final")
+	for _, name := range []string{"final", "hybrid-final"} {
+		p, pErr := set.Profile(name)
+		require.NoError(t, pErr, name)
+
+		specs, rErr := p.Roster(nil, set.LensNames())
+		require.NoError(t, rErr, name)
+		assert.Len(t, specs, 2, "%s: the last pass before merge is narrow by design", name)
+
+		body := strings.ToLower(p.Body)
+		assert.Contains(t, body, "critical", name)
+		assert.Contains(t, body, "major", name)
+		assert.NotContains(t, body, "**minor**",
+			"%s: a profile that still defines minor as a severity will be handed minor findings", name)
+	}
+}
+
+func TestDefaults_HybridFinalRoster(t *testing.T) {
+	set, err := Load(LoadOpts{})
 	require.NoError(t, err)
+	finalProfile, err := set.Profile("final")
+	require.NoError(t, err)
+	p, err := set.Profile("hybrid-final")
+	require.NoError(t, err)
+	assert.Equal(t, finalProfile.Body, p.Body, "hybrid-final carries the exact narrow two-severity body of final")
 
 	specs, err := p.Roster(nil, set.LensNames())
 	require.NoError(t, err)
-	assert.Len(t, specs, 2, "the last pass before merge is narrow by design")
+	require.Len(t, specs, 2)
 
-	body := strings.ToLower(p.Body)
-	assert.Contains(t, body, "critical")
-	assert.Contains(t, body, "major")
-	assert.NotContains(t, body, "**minor**",
-		"a profile that still defines minor as a severity will be handed minor findings")
+	assert.Equal(t, AgentSpec{Name: "bugs+impl", Lenses: []string{"bugs", "impl"}, Executor: "pi",
+		Model: "kimi-coding/k3.1-pro", Effort: "high", Color: "6", ColorName: "cyan"}, specs[0])
+	assert.Equal(t, AgentSpec{Name: "adversarial", Lenses: []string{"adversarial"}, Executor: "agy",
+		Model: "gemini-4-neon", Effort: "high", Color: "3", ColorName: "yellow"}, specs[1])
+
+	for _, stage := range []string{"synthesis", "verify"} {
+		st, stErr := p.Stage(set, stage)
+		require.NoError(t, stErr, stage)
+		assert.Equal(t, "pi", st.Executor, stage)
+		assert.Equal(t, "openai-codex/gpt-6.1-terra", st.Model, stage)
+		assert.Equal(t, "medium", st.Effort, stage)
+	}
 }
 
 func TestDefaults_SeverityContract(t *testing.T) {
@@ -256,13 +285,13 @@ func TestDefaults_SeverityContract(t *testing.T) {
 	require.NoError(t, err)
 
 	// derived from the shipped set rather than listed, so a new full profile is guarded without being
-	// named here. final reports two severities, triage rates decision weight rather than runtime damage,
-	// and expert reviews a plan as well as a diff so it rates what goes wrong if the thing is built;
-	// all three are asserted separately below.
+	// named here. final and hybrid-final report two severities, triage rates decision weight rather than
+	// runtime damage, and expert reviews a plan as well as a diff so it rates what goes wrong if the
+	// thing is built; all four are asserted separately below.
 	var expected string
 	compared := 0
 	for _, name := range set.ProfileNames() {
-		if name == "final" || name == "triage" || name == "expert" {
+		if name == "final" || name == "hybrid-final" || name == "triage" || name == "expert" {
 			continue
 		}
 		p, profileErr := set.Profile(name)
@@ -286,9 +315,24 @@ func TestDefaults_SeverityContract(t *testing.T) {
 
 	final, err := set.Profile("final")
 	require.NoError(t, err)
+	finalStart := strings.Index(final.Body, "## Severity bar")
+	require.NotEqual(t, -1, finalStart)
+	finalEnd := strings.Index(final.Body[finalStart:], "\n## Reporting")
+	require.NotEqual(t, -1, finalEnd)
+	finalSection := final.Body[finalStart : finalStart+finalEnd]
+
 	finalText := strings.Join(strings.Fields(final.Body), " ")
 	assert.Contains(t, finalText, "Severity is what goes wrong when the code runs")
 	assert.Contains(t, finalText, "document a machine or an agent executes against as a contract")
+
+	hybridFinal, err := set.Profile("hybrid-final")
+	require.NoError(t, err)
+	hfStart := strings.Index(hybridFinal.Body, "## Severity bar")
+	require.NotEqual(t, -1, hfStart)
+	hfEnd := strings.Index(hybridFinal.Body[hfStart:], "\n## Reporting")
+	require.NotEqual(t, -1, hfEnd)
+	assert.Equal(t, finalSection, hybridFinal.Body[hfStart:hfStart+hfEnd],
+		"hybrid-final must keep the exact same two-severity bar as final")
 
 	triage, err := set.Profile("triage")
 	require.NoError(t, err)

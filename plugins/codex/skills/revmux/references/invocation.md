@@ -226,6 +226,8 @@ will not read, and an unwritable `./.revmux/` under `revmux init`.
 | `comprehensive-plus` | `comprehensive` plus a second adversarial peer on agy `gemini-4-neon:high` — five agents | a change worth a third vendor's adversarial read; needs claude, codex and agy |
 | `focused` | one `bugs` agent plus the codex peer | small or time-boxed change, correctness is the concern |
 | `final` | `bugs+impl` plus the codex peer, nothing below major reported | last look before merging |
+| `hybrid-final` | `bugs+impl` on `pi/kimi-coding/k3.1-pro:high` plus `adversarial` on `agy/gemini-4-neon:high`, both stages on `pi/openai-codex/gpt-6.1-terra:medium`, nothing below major reported | pre-merge or confirming round on the `hybrid` stack; needs `pi` and `agy` |
+| `pi` | three pi agents across different models plus an adversarial codex peer | pi + codex panel; needs `pi` and `codex` |
 | `claude-only` | `bugs+impl`, `arch+quality`, `docs+tests`, `adversarial` — all on claude | codex is unavailable or unwanted |
 | `codex-only` | the same four splits on codex, synthesis and verify included — no claude anywhere | claude is unavailable or unwanted |
 | `grill-me` | `bugs+impl` and `architecture+quality`, each run once on claude and once on codex, every agent reading against the change | the user asked to be grilled; corroboration between two vendors on one lens pair is the point |
@@ -635,11 +637,13 @@ authenticated:
 
 - `claude` — every lens agent and both model stages run on it by default
 - `codex` — needed when a profile, a roster entry or a stage names it in its `model:`. `claude-only`
-  needs claude alone, `codex-only` needs codex alone and `comprehensive-plus` needs agy as well; the
-  other six shipped profiles need both. `preflight.sh <profile>` answers it for the profile that will
-  actually run
-- `agy` — needed when a profile, a roster entry or a stage names it; of the shipped profiles only
-  `comprehensive-plus` does
+  needs claude alone, `codex-only` needs codex alone, `comprehensive-plus` needs claude, codex and agy,
+  `pi` needs pi and codex, `hybrid-final` needs pi and agy, and the other six shipped profiles need claude
+  and codex. `preflight.sh <profile>` answers it for the profile that will actually run
+- `agy` — needed when a profile, a roster entry or a stage names it; of the shipped profiles
+  `comprehensive-plus` and `hybrid-final` do
+- `pi` — needed when a profile, a roster entry or a stage names it; of the shipped profiles `pi` and
+  `hybrid-final` do
 
 `ANTHROPIC_API_KEY` is stripped from the child environment by default so `claude` uses interactive
 subscription auth; `--preserve-anthropic-api-key` passes it through for key-based auth. `CLAUDECODE`
