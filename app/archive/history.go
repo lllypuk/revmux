@@ -46,6 +46,32 @@ type record struct {
 	} `json:"stats"`
 }
 
+// RoundSummary is the metadata extracted from one completed prior round.
+type RoundSummary struct {
+	Name      string
+	StartedAt time.Time
+	Expected  int
+	Reported  int
+	Degraded  []string
+	Critical  int
+	Major     int
+	Minor     int
+	Readable  bool
+}
+
+// GatePassed reports whether this round had readable findings, no degraded sources, and zero
+// critical or major findings.
+func (r RoundSummary) GatePassed() bool {
+	return r.Readable && len(r.Degraded) == 0 && r.Critical == 0 && r.Major == 0
+}
+
+// TaskHistory holds both the rendered prior-round inventory and the structured round summaries read
+// from the same single pass over the task directory.
+type TaskHistory struct {
+	Text   string
+	Rounds []RoundSummary
+}
+
 // History renders the prior-round inventory every composed prompt carries: the task directory plus one
 // line per round with its timestamp, finding counts by severity and source status. A task with no prior
 // round yields an empty string, which omits the block rather than injecting it empty.
@@ -54,9 +80,16 @@ type record struct {
 // with no error. Rounds come from task.Rounds, resolved before New so the round being written is not one
 // of its own. It renders no independence instruction; prompt.ComposeOpts appends that.
 func History(taskDir string) (string, error) {
+	h, err := InspectHistory(taskDir)
+	return h.Text, err
+}
+
+// InspectHistory reads every completed prior round under taskDir once, returning both the rendered
+// prompt inventory and structured round summaries ordered oldest first.
+func InspectHistory(taskDir string) (TaskHistory, error) {
 	names, err := task.Rounds(taskDir)
 	if err != nil {
-		return "", fmt.Errorf("list rounds: %w", err)
+		return TaskHistory{}, fmt.Errorf("list rounds: %w", err)
 	}
 
 	rounds := make([]round, 0, len(names))
@@ -64,16 +97,43 @@ func History(taskDir string) (string, error) {
 		dir := filepath.Join(taskDir, name)
 		fi, statErr := os.Stat(dir)
 		if statErr != nil {
-			return "", fmt.Errorf("stat %s: %w", dir, statErr)
+			return TaskHistory{}, fmt.Errorf("stat %s: %w", dir, statErr)
 		}
 		rounds = append(rounds, readRound(taskDir, name, fi.ModTime()))
 	}
 	if len(rounds) == 0 {
-		return "", nil
+		return TaskHistory{}, nil
 	}
 
 	slices.SortFunc(rounds, func(a, b round) int { return a.order().Compare(b.order()) })
-	return renderRounds(taskDir, rounds), nil
+	summaries := make([]RoundSummary, 0, len(rounds))
+	for _, r := range rounds {
+		summaries = append(summaries, r.summary())
+	}
+	return TaskHistory{Text: renderRounds(taskDir, rounds), Rounds: summaries}, nil
+}
+
+func (r round) summary() RoundSummary {
+	s := RoundSummary{Name: r.name}
+	if r.rep == nil {
+		return s
+	}
+	s.Readable = true
+	s.StartedAt = r.rep.Stats.StartedAt
+	s.Expected = r.rep.Sources.Expected
+	s.Reported = r.rep.Sources.Reported
+	s.Degraded = slices.Clone(r.rep.Sources.Degraded)
+	for _, f := range r.rep.Findings {
+		switch f.Severity {
+		case finding.Critical:
+			s.Critical++
+		case finding.Major:
+			s.Major++
+		case finding.Minor:
+			s.Minor++
+		}
+	}
+	return s
 }
 
 // readRound reads one round's own record of itself. This is revmux reading what revmux wrote, and it

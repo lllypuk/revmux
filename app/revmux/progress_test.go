@@ -374,7 +374,22 @@ func TestProgress_finish(t *testing.T) {
 			want: []string{
 				"16:07:28 " + indent + "── complete ──",
 				"16:07:28 " + indent + "4m51s, sources 2/2, degraded none",
-				"16:07:28 " + indent + "3 findings: 1 major, 2 minor",
+				"16:07:28 " + indent + "3 findings: 1 major, 2 minor (gate: FAIL, 1 gating)",
+			},
+		},
+		{
+			name: "minor-only run reports gate PASS",
+			rep: func(r finding.Report) finding.Report {
+				r.Findings = []finding.Finding{
+					{Severity: finding.Minor, Title: "nit 1"},
+					{Severity: finding.Minor, Title: "nit 2"},
+				}
+				return r
+			},
+			want: []string{
+				"16:07:28 " + indent + "── complete ──",
+				"16:07:28 " + indent + "4m51s, sources 2/2, degraded none",
+				"16:07:28 " + indent + "2 findings: 2 minor (gate: PASS)",
 			},
 		},
 		{
@@ -388,7 +403,7 @@ func TestProgress_finish(t *testing.T) {
 			want: []string{
 				"16:07:28 " + indent + "── complete ──",
 				"16:07:28 " + indent + "4m51s, sources 2/2, degraded none",
-				"16:07:28 " + indent + "3 findings: 1 major, 2 high",
+				"16:07:28 " + indent + "3 findings: 1 major, 2 high (gate: FAIL, 1 gating)",
 			},
 		},
 		{
@@ -400,7 +415,7 @@ func TestProgress_finish(t *testing.T) {
 			want: []string{
 				"16:07:28 " + indent + "── complete ──",
 				"16:07:28 " + indent + "4m51s, sources 2/2, degraded none",
-				"16:07:28 " + indent + "1 findings: 1 unlabeled",
+				"16:07:28 " + indent + "1 findings: 1 unlabeled (gate: PASS)",
 			},
 		},
 		{
@@ -409,7 +424,7 @@ func TestProgress_finish(t *testing.T) {
 			want: []string{
 				"16:07:28 " + indent + "── complete ──",
 				"16:07:28 " + indent + "4m51s, sources 2/2, degraded none",
-				"16:07:28 " + indent + "no findings",
+				"16:07:28 " + indent + "no findings (gate: PASS)",
 			},
 		},
 		{
@@ -422,7 +437,7 @@ func TestProgress_finish(t *testing.T) {
 			want: []string{
 				"16:07:28 " + indent + "── complete ──",
 				"16:07:28 " + indent + "4m51s, sources 1/2, DEGRADED: codex",
-				"16:07:28 " + indent + "1 findings: 1 critical",
+				"16:07:28 " + indent + "1 findings: 1 critical (gate: DEGRADED)",
 			},
 		},
 		{
@@ -435,7 +450,7 @@ func TestProgress_finish(t *testing.T) {
 			want: []string{
 				"16:07:28 " + indent + "── complete ──",
 				"16:07:28 " + indent + "4m51s, sources 1/2, DEGRADED: codex",
-				"16:07:28 " + indent + "no findings",
+				"16:07:28 " + indent + "no findings (gate: DEGRADED)",
 			},
 		},
 	}

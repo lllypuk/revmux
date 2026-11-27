@@ -13,6 +13,8 @@ import (
 type Report struct {
 	Scope         Scope        `json:"scope"`
 	Sources       SourceStatus `json:"sources"`
+	GatePassed    bool         `json:"gate_passed"`
+	GatingCount   int          `json:"gating_count"`
 	Findings      []Finding    `json:"findings"`
 	OpenQuestions []Finding    `json:"open_questions"`
 	PreExisting   []Finding    `json:"pre_existing"`
@@ -145,6 +147,18 @@ func (r Report) JSON(w io.Writer) error {
 	return nil
 }
 
+// EvalGate computes the merge-gate verdict from the report's findings and source status.
+// Gating findings are critical and major only; minor findings never fail the gate, while any
+// degraded source fails it even when zero findings were reported.
+func (r Report) EvalGate() (passed bool, gating int) {
+	for _, f := range r.Findings {
+		if f.Severity == Critical || f.Severity == Major {
+			gating++
+		}
+	}
+	return !r.Sources.Degraded() && gating == 0, gating
+}
+
 // Above returns the report with findings below minConfidence removed. Open questions,
 // pre-existing, immaterial and rejected findings pass through untouched: they are never boosted or
 // dropped, and filtering them by confidence would discard what the reviewer most needs.
@@ -156,6 +170,7 @@ func (r Report) Above(minConfidence int) Report {
 			out.Findings = append(out.Findings, f)
 		}
 	}
+	out.GatePassed, out.GatingCount = out.EvalGate()
 	return out
 }
 
@@ -185,7 +200,20 @@ func (r Report) headerLines() []string {
 			r.Sources.Reported, r.Sources.Expected, strings.Join(names, ", "))
 		out = append(out, banner, "")
 	}
+	if r.Sources.Expected > 0 || len(r.Sources.Agents) > 0 || r.Sources.Degraded() {
+		out = append(out, "gate: "+r.gateLabel(), "")
+	}
 	return out
+}
+
+func (r Report) gateLabel() string {
+	if r.Sources.Degraded() {
+		return "degraded"
+	}
+	if passed, gating := r.EvalGate(); !passed {
+		return fmt.Sprintf("fail (%d gating)", gating)
+	}
+	return "pass"
 }
 
 func (r Report) findingsLines() []string {
@@ -241,6 +269,7 @@ func (r Report) sourcesLines() []string {
 
 func (r Report) withEmptyLists() Report {
 	out := r
+	out.GatePassed, out.GatingCount = out.EvalGate()
 	out.Findings = r.normalizeList(r.Findings)
 	out.OpenQuestions = r.normalizeList(r.OpenQuestions)
 	out.PreExisting = r.normalizeList(r.PreExisting)

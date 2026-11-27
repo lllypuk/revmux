@@ -28,6 +28,8 @@ func sampleReport() Report {
 					RequestedModel: "gpt-5.6-sol", ActualModel: "gpt-5.6-sol", Effort: "xhigh", Tokens: 31000, Raised: 2},
 			},
 		},
+		GatePassed:  false,
+		GatingCount: 2,
 		Findings: []Finding{
 			{ID: "codex-1", File: "app/pipeline/find.go", Line: 40, Severity: Minor, Confidence: 70,
 				Title: "minor thing", Sources: []string{"codex"}, Lenses: []string{"adversarial"}},
@@ -260,7 +262,7 @@ func TestReport_JSONShape(t *testing.T) {
 
 	raw := map[string]json.RawMessage{}
 	require.NoError(t, json.Unmarshal(buf.Bytes(), &raw))
-	for _, key := range []string{"scope", "sources", "findings", "open_questions", "pre_existing", "immaterial", "rejected", "stats"} {
+	for _, key := range []string{"scope", "sources", "gate_passed", "gating_count", "findings", "open_questions", "pre_existing", "immaterial", "rejected", "stats"} {
 		assert.Contains(t, raw, key)
 	}
 
@@ -362,6 +364,101 @@ func TestReport_AboveKeepsTheOtherLists(t *testing.T) {
 	assert.Equal(t, rep.Scope, got.Scope)
 	assert.Equal(t, rep.Sources, got.Sources)
 	assert.Equal(t, rep.Stats, got.Stats)
+}
+
+func TestReport_EvalGate(t *testing.T) {
+	tests := []struct {
+		name       string
+		rep        Report
+		wantPassed bool
+		wantGating int
+		wantExit   int
+	}{
+		{
+			name:       "no findings passes gate",
+			rep:        Report{Sources: SourceStatus{Expected: 2, Reported: 2}},
+			wantPassed: true, wantGating: 0, wantExit: 0,
+		},
+		{
+			name: "minor-only findings pass gate despite exit 1",
+			rep: Report{
+				Sources:  SourceStatus{Expected: 2, Reported: 2},
+				Findings: []Finding{{ID: "m1", Severity: Minor}, {ID: "m2", Severity: Minor}},
+			},
+			wantPassed: true, wantGating: 0, wantExit: 1,
+		},
+		{
+			name: "major finding fails gate",
+			rep: Report{
+				Sources:  SourceStatus{Expected: 2, Reported: 2},
+				Findings: []Finding{{ID: "M1", Severity: Major}, {ID: "m1", Severity: Minor}},
+			},
+			wantPassed: false, wantGating: 1, wantExit: 1,
+		},
+		{
+			name: "critical finding fails gate",
+			rep: Report{
+				Sources:  SourceStatus{Expected: 2, Reported: 2},
+				Findings: []Finding{{ID: "C1", Severity: Critical}},
+			},
+			wantPassed: false, wantGating: 1, wantExit: 1,
+		},
+		{
+			name: "degraded source fails gate even with zero findings",
+			rep: Report{
+				Sources: SourceStatus{Expected: 2, Reported: 1, DegradedSources: []string{"adversarial"}},
+			},
+			wantPassed: false, wantGating: 0, wantExit: 0,
+		},
+		{
+			name: "agent-level degraded flag fails gate",
+			rep: Report{
+				Sources: SourceStatus{Expected: 2, Reported: 1, Agents: []SourceStat{{Name: "adversarial", Degraded: true}}},
+			},
+			wantPassed: false, wantGating: 0, wantExit: 0,
+		},
+		{
+			name: "non-actionable lists do not fail gate",
+			rep: Report{
+				Sources:       SourceStatus{Expected: 2, Reported: 2},
+				OpenQuestions: []Finding{{ID: "q1", Severity: Critical}},
+				PreExisting:   []Finding{{ID: "p1", Severity: Major}},
+				Immaterial:    []Finding{{ID: "i1", Severity: Major}},
+				Rejected:      []Finding{{ID: "r1", Severity: Critical}},
+			},
+			wantPassed: true, wantGating: 0, wantExit: 0,
+		},
+		{
+			name: "Above recomputes gate after filtering out low-confidence major",
+			rep: Report{
+				Sources: SourceStatus{Expected: 2, Reported: 2},
+				Findings: []Finding{
+					{ID: "M1", Severity: Major, Confidence: 40},
+					{ID: "m1", Severity: Minor, Confidence: 90},
+				},
+			}.Above(70),
+			wantPassed: true, wantGating: 0, wantExit: 1,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			passed, gating := tt.rep.EvalGate()
+			assert.Equal(t, tt.wantPassed, passed)
+			assert.Equal(t, tt.wantGating, gating)
+			assert.Equal(t, tt.wantExit, tt.rep.ExitCode())
+
+			buf := &bytes.Buffer{}
+			require.NoError(t, tt.rep.JSON(buf))
+			var decoded struct {
+				GatePassed  bool `json:"gate_passed"`
+				GatingCount int  `json:"gating_count"`
+			}
+			require.NoError(t, json.Unmarshal(buf.Bytes(), &decoded))
+			assert.Equal(t, tt.wantPassed, decoded.GatePassed)
+			assert.Equal(t, tt.wantGating, decoded.GatingCount)
+		})
+	}
 }
 
 func TestReport_ExitCode(t *testing.T) {

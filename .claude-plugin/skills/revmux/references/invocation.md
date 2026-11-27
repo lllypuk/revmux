@@ -210,7 +210,8 @@ the most common way to misuse revmux: a caller treats nonzero as an error, disca
 and re-runs a fifteen-minute review to get the same answer.
 
 Exit `2` covers: bad config, an unreadable prompt tree, an omitted `--run`, a round with no `input/` or
-an empty `scope.md`, a round that has already run, an unwritable run artifact, and the case where every
+an empty `scope.md`, a round that has already run, a round refused by `--max-rounds` or the
+prior-clean-round guard (without `--force`), an unwritable run artifact, and the case where every
 source degraded. It also covers a delivered `SIGINT`/`SIGTERM`. On `2`, read stderr — the message names
 which of these it was.
 
@@ -667,6 +668,7 @@ each process group down itself rather than leaving model CLIs running unsupervis
 | `--no-tui` | | disable the terminal UI |
 | `--markdown` | | write the report as markdown instead of JSON |
 | `--preserve-anthropic-api-key` | | pass `ANTHROPIC_API_KEY` to the model CLIs |
+| `--force` | | bypass the `max-rounds` and prior-clean-round guards |
 | `--config-dir=<dir>` | `~/.config/revmux` | directory holding the config file and the prompt tree |
 | `--init` | | materialize the resolved config and prompt tree into `./.revmux/` |
 | `--dump-defaults=<dir>` | | extract the embedded prompt tree into a directory |
@@ -680,6 +682,7 @@ These also read from the config file, under the same name as the flag:
 | `--hard-timeout=<d>` | `hard-timeout` | `20m` | kill an agent after this long, per attempt |
 | `--stagger-delay=<d>` | `stagger-delay` | `30s` | how long to wait for the first agent before releasing the rest |
 | `--max-parallel=<n>` | `max-parallel` | `6` | how many agents run at once |
+| `--max-rounds=<n>` | `max-rounds` | `0` | maximum completed rounds per task before refusing a new run; `0` disables the limit |
 | `--verify-groups=<n>` | `verify-groups` | `6` | cap on the number of verifier groups |
 | `--verify-group-by=<k>` | `verify-group-by` | `dir` | key verifier groups by directory or by the agent that raised the finding (`source`) |
 | `--tasks-dir=<dir>` | `tasks-dir` | `./.revmux/tasks` | root directory holding task directories |

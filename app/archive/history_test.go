@@ -165,6 +165,52 @@ func TestHistory(t *testing.T) {
 	})
 }
 
+func TestInspectHistory(t *testing.T) {
+	taskDir := t.TempDir()
+	writeRound(t, taskDir, "01-initial", finding.Report{
+		Sources: finding.SourceStatus{Expected: 4, Reported: 4},
+		Findings: []finding.Finding{
+			{Severity: finding.Major, Title: "bug"},
+			{Severity: finding.Minor, Title: "nit"},
+		},
+		Stats: finding.Stats{StartedAt: testNow},
+	})
+	writeRound(t, taskDir, "02-after-fix", finding.Report{
+		Sources:  finding.SourceStatus{Expected: 2, Reported: 2},
+		Findings: []finding.Finding{{Severity: finding.Minor, Title: "minor only"}},
+		Stats:    finding.Stats{StartedAt: roundAt(time.Hour)},
+	})
+	writeRound(t, taskDir, "03-degraded", finding.Report{
+		Sources: finding.SourceStatus{Expected: 2, Reported: 1, DegradedSources: []string{"adversarial"}},
+		Stats:   finding.Stats{StartedAt: roundAt(2 * time.Hour)},
+	})
+	unreadable := claimedRound(t, taskDir, "04-broken")
+	require.NoError(t, os.Chtimes(unreadable, roundAt(3*time.Hour), roundAt(3*time.Hour)))
+
+	h, err := InspectHistory(taskDir)
+	require.NoError(t, err)
+	assert.NotEmpty(t, h.Text)
+	require.Len(t, h.Rounds, 4)
+
+	assert.Equal(t, "01-initial", h.Rounds[0].Name)
+	assert.Equal(t, 1, h.Rounds[0].Major)
+	assert.Equal(t, 1, h.Rounds[0].Minor)
+	assert.False(t, h.Rounds[0].GatePassed())
+
+	assert.Equal(t, "02-after-fix", h.Rounds[1].Name)
+	assert.Equal(t, 0, h.Rounds[1].Major)
+	assert.Equal(t, 1, h.Rounds[1].Minor)
+	assert.True(t, h.Rounds[1].GatePassed(), "minor-only round with full sources passes gate")
+
+	assert.Equal(t, "03-degraded", h.Rounds[2].Name)
+	assert.Equal(t, []string{"adversarial"}, h.Rounds[2].Degraded)
+	assert.False(t, h.Rounds[2].GatePassed(), "degraded round never passes gate")
+
+	assert.Equal(t, "04-broken", h.Rounds[3].Name)
+	assert.False(t, h.Rounds[3].Readable)
+	assert.False(t, h.Rounds[3].GatePassed(), "unreadable round never passes gate")
+}
+
 // writeRound stores one prior round the way a finished run leaves it: a direct child of the task
 // directory carrying the manifest that marks it a round and the findings.json History reads.
 func writeRound(t *testing.T, taskDir, name string, rep finding.Report) {

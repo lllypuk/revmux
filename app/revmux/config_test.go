@@ -34,6 +34,8 @@ func TestParseArgs_defaults(t *testing.T) {
 	assert.Equal(t, 20*time.Minute, o.HardTimeout)
 	assert.Equal(t, 30*time.Second, o.StaggerDelay)
 	assert.Equal(t, 6, o.MaxParallel)
+	assert.Equal(t, 0, o.MaxRounds)
+	assert.False(t, o.Force)
 	assert.Equal(t, 6, o.VerifyGroups)
 	assert.Equal(t, "dir", o.VerifyGroupBy, "a code review groups by directory unless the caller says otherwise")
 	assert.Equal(t, "./.revmux/tasks", o.TasksDir)
@@ -144,6 +146,7 @@ func TestParseArgs_knobOriginsNameTheWinningLayer(t *testing.T) {
 		"idle-timeout":    originFlag,
 		"profile":         originProject,
 		"max-parallel":    originProject,
+		"max-rounds":      originDefault,
 		"verify-groups":   originUser,
 		"hard-timeout":    originDefault,
 		"stagger-delay":   originDefault,
@@ -305,7 +308,7 @@ func TestKnobNames_iniNameMatchesLongName(t *testing.T) {
 		assert.Equal(t, f.Tag.Get("long"), f.Tag.Get("ini-name"), "field %s: a config key must match its flag", f.Name)
 		assert.NotEmpty(t, f.Tag.Get("default"), "field %s: a knob with no default resolves to a zero value", f.Name)
 	}
-	assert.Equal(t, []string{"idle-timeout", "hard-timeout", "stagger-delay", "max-parallel",
+	assert.Equal(t, []string{"idle-timeout", "hard-timeout", "stagger-delay", "max-parallel", "max-rounds",
 		"verify-groups", "verify-group-by", "tasks-dir", "auto-exit", "profile", "codex-sandbox"}, knobNames())
 }
 

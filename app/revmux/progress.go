@@ -118,8 +118,9 @@ func (pr *progress) sourceLine(rep finding.Report) string {
 // severity outside the three constants is counted under its own name rather than dropped, so the parts
 // always sum to the total: only the claude path has a schema constraining that vocabulary.
 func (pr *progress) findingLine(rep finding.Report) string {
+	tag := " (" + pr.gateTag(rep) + ")"
 	if len(rep.Findings) == 0 {
-		return "no findings"
+		return "no findings" + tag
 	}
 	counts := map[finding.Severity]int{}
 	for _, f := range rep.Findings {
@@ -135,7 +136,17 @@ func (pr *progress) findingLine(rep finding.Report) string {
 	for _, sev := range slices.Sorted(maps.Keys(counts)) {
 		parts = append(parts, fmt.Sprintf("%d %s", counts[sev], cmp.Or(string(sev), "unlabeled")))
 	}
-	return fmt.Sprintf("%d findings: %s", len(rep.Findings), strings.Join(parts, ", "))
+	return fmt.Sprintf("%d findings: %s%s", len(rep.Findings), strings.Join(parts, ", "), tag)
+}
+
+func (pr *progress) gateTag(rep finding.Report) string {
+	if rep.Sources.Degraded() {
+		return "gate: DEGRADED"
+	}
+	if passed, gating := rep.EvalGate(); !passed {
+		return fmt.Sprintf("gate: FAIL, %d gating", gating)
+	}
+	return "gate: PASS"
 }
 
 // line renders one event. Every EventKind needs a case here and in the TUI, or it is invisible in

@@ -69,6 +69,9 @@ check-plugins:
 	python3 .github/scripts/validate-codex-marketplace.py
 	@echo "plugin trees agree"
 
+sync-local-skills:
+	bash scripts/sync-local-skills.sh
+
 fmt:
 	gofmt -s -w $(shell find . -type f -name "*.go" -not -path "./vendor/*" -not -path "*/mocks/*")
 	goimports -w $(shell find . -type f -name "*.go" -not -path "./vendor/*" -not -path "*/mocks/*")
@@ -82,4 +85,4 @@ version:
 	@echo "branch: $(BRANCH), hash: $(HASH), timestamp: $(TIMESTAMP)"
 	@echo "revision: $(REV)"
 
-.PHONY: all build install uninstall test test-scripts lint lint-go lint-scripts check-plugins fmt race version
+.PHONY: all build install uninstall test test-scripts lint lint-go lint-scripts check-plugins sync-local-skills fmt race version

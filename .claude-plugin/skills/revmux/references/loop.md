@@ -18,9 +18,11 @@ loop up front, in which case round 1 is still reported before any fixing and Ste
 
 ## What gates
 
-Gating is `critical` and `major` in `findings`. Nothing else:
+Gating is `critical` and `major` in `findings`, reported directly as `gating_count` and `gate_passed` in
+the JSON output (`gate_passed: true` when `sources.degraded` is empty and `gating_count == 0`). Nothing else:
 
-- `minor` never gates — it is what the loop is expected to leave behind.
+- `minor` never gates — a minor-only run exits `1` with `gate_passed: true` and `gating_count: 0`, which
+  is a clean exit for the loop.
 - `rejected`, `immaterial`, `pre_existing` and `open_questions` are not in `findings` and never gate. An open
   question is a decision for the user, so the loop must not edit code to resolve one.
 - **A finding restating a scope the round's own `scope.md` or `goal.md` puts outside the change does not
@@ -72,7 +74,7 @@ Stop on the first of these:
 |---|---|
 | a review returns zero gating findings | clean, plus whatever minors are left |
 | the **code** gating count is not **strictly lower** than the previous round's **and** one of its gating findings repeats | the fix is not landing — name the repeated finding and stop |
-| five rounds | cap reached, with what is still open |
+| five rounds (or configured `max-rounds`) | cap reached, with what is still open; revmux enforces `max-rounds` and refuses repeat runs after a clean prior round unless `--profile final`/`hybrid-final` (once) or `--force` is passed |
 | a run exits `2`, or `sources.degraded` is non-empty | the failure, not a verdict — `1` is findings and is the normal case |
 
 

@@ -47,7 +47,7 @@ config's other keys.
 
 ### What belongs in the config file
 
-Runtime knobs only: `idle-timeout`, `hard-timeout`, `stagger-delay`, `max-parallel`, `verify-groups`,
+Runtime knobs only: `idle-timeout`, `hard-timeout`, `stagger-delay`, `max-parallel`, `max-rounds`, `verify-groups`,
 `verify-group-by`, `tasks-dir`, `auto-exit`, `profile`, `codex-sandbox`.
 The key is the long flag name verbatim, hyphens included — that is what `ini-name` is set to, and it is what
 makes the key guessable from `--help`.
@@ -425,7 +425,9 @@ Every whole-file artifact — manifest, composed prompts, stage snapshots, `even
 ### Nothing deletes as a side effect
 
 There is no pruning and no `--keep-runs`. A review, `new`, `init`, `config` and `stats` remove nothing,
-ever, and no `--force`, `--overwrite` or reclaim-on-write is added to any of them.
+ever, and no `--overwrite` or reclaim-on-write is added to any of them (`--force` only bypasses
+`--max-rounds` and prior-clean-round guards before a new round is claimed; it never deletes or overwrites
+an existing round).
 A round holds the caller's own `input/`, so anything that deleted a round in the course of doing something
 else would delete the record of what that round reviewed — the one artifact the archive rule exists to
 preserve — and it would do it while the caller was asking for a review.

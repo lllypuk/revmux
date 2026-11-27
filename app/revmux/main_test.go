@@ -1270,6 +1270,106 @@ func (r *runHarness) newRunner(spec pipeline.RunnerSpec) pipeline.Runner {
 	}
 }
 
+func TestRun_roundGuards(t *testing.T) {
+	writePrior := func(t *testing.T, tasksDir, taskID, round string, rep finding.Report) {
+		t.Helper()
+		dir := filepath.Join(tasksDir, taskID, round)
+		require.NoError(t, os.MkdirAll(filepath.Join(dir, task.InputDir), 0o750))
+		require.NoError(t, os.WriteFile(filepath.Join(dir, task.ManifestFile), []byte("{}"), 0o600))
+		var buf bytes.Buffer
+		require.NoError(t, rep.JSON(&buf))
+		require.NoError(t, os.WriteFile(filepath.Join(dir, task.FindingsFile), buf.Bytes(), 0o600))
+	}
+
+	prepareRound := func(t *testing.T, tasksDir, taskID, round string) {
+		t.Helper()
+		dir := filepath.Join(tasksDir, taskID, round, task.InputDir)
+		require.NoError(t, os.MkdirAll(dir, 0o750))
+		require.NoError(t, os.WriteFile(filepath.Join(dir, task.ScopeFile), []byte("scope\n"), 0o600))
+	}
+
+	cleanResult := executor.Result{StructuredOutput: []byte(`{"findings":[]}`)}
+	t0 := time.Date(2026, 7, 26, 14, 0, 0, 0, time.UTC)
+
+	t.Run("max-rounds blocks without claiming round and --force overrides", func(t *testing.T) {
+		root := taskRoot(t)
+		writePrior(t, root, "pr-1", "01-initial", finding.Report{
+			Sources:  finding.SourceStatus{Expected: 2, Reported: 2},
+			Findings: []finding.Finding{{Severity: finding.Major, Title: "m1"}},
+			Stats:    finding.Stats{StartedAt: t0},
+		})
+		writePrior(t, root, "pr-1", "02-after-fix", finding.Report{
+			Sources:  finding.SourceStatus{Expected: 2, Reported: 2},
+			Findings: []finding.Finding{{Severity: finding.Major, Title: "m2"}},
+			Stats:    finding.Stats{StartedAt: t0.Add(time.Hour)},
+		})
+		prepareRound(t, root, "pr-1", "03-more")
+
+		r := newRunOpts(t, options{TasksDir: root, Task: "pr-1", Run: "03-more", Profile: "focused",
+			MaxRounds: 2, NoSynthesis: true, NoVerify: true, NoTUI: true})
+		r.result = cleanResult
+		assert.Equal(t, 2, run(r.opts()))
+		assert.Contains(t, r.stderr.String(), "max-rounds=2")
+		assert.Equal(t, 0, r.attempts(), "blocked before launching any agent")
+		assert.NoFileExists(t, filepath.Join(root, "pr-1", "03-more", task.ManifestFile), "blocked before claiming the round")
+
+		rForce := newRunOpts(t, options{TasksDir: root, Task: "pr-1", Run: "03-more", Profile: "focused",
+			MaxRounds: 2, Force: true, NoSynthesis: true, NoVerify: true, NoTUI: true})
+		rForce.result = cleanResult
+		assert.Equal(t, 0, run(rForce.opts()))
+		assert.Positive(t, rForce.attempts())
+	})
+
+	t.Run("prior clean minor-only round blocks full profile, allows one hybrid-final pass, blocks second clean pass", func(t *testing.T) {
+		root := taskRoot(t)
+		writePrior(t, root, "pr-2", "01-initial", finding.Report{
+			Sources:  finding.SourceStatus{Expected: 4, Reported: 4},
+			Findings: []finding.Finding{{Severity: finding.Minor, Title: "just a nit"}},
+			Stats:    finding.Stats{StartedAt: t0},
+		})
+		prepareRound(t, root, "pr-2", "02-repeat")
+
+		rBlocked := newRunOpts(t, options{TasksDir: root, Task: "pr-2", Run: "02-repeat", Profile: "focused",
+			MaxRounds: 5, NoSynthesis: true, NoVerify: true, NoTUI: true})
+		rBlocked.result = cleanResult
+		assert.Equal(t, 2, run(rBlocked.opts()))
+		assert.Contains(t, rBlocked.stderr.String(), `prior round "01-initial" already passed the gate`)
+		assert.Equal(t, 0, rBlocked.attempts())
+
+		rConfirm := newRunOpts(t, options{TasksDir: root, Task: "pr-2", Run: "02-repeat", Profile: "hybrid-final",
+			MaxRounds: 5, NoSynthesis: true, NoVerify: true, NoTUI: true})
+		rConfirm.result = cleanResult
+		assert.Equal(t, 0, run(rConfirm.opts()))
+		assert.Contains(t, rConfirm.stderr.String(), "warning: prior round")
+		assert.Positive(t, rConfirm.attempts())
+
+		prepareRound(t, root, "pr-2", "03-again")
+		rSecond := newRunOpts(t, options{TasksDir: root, Task: "pr-2", Run: "03-again", Profile: "hybrid-final",
+			MaxRounds: 5, NoSynthesis: true, NoVerify: true, NoTUI: true})
+		rSecond.result = cleanResult
+		assert.Equal(t, 2, run(rSecond.opts()))
+		assert.Contains(t, rSecond.stderr.String(), `prior round "02-repeat" already passed the gate`)
+		assert.Equal(t, 0, rSecond.attempts())
+	})
+
+	t.Run("max-rounds 0 warns on prior clean round without blocking", func(t *testing.T) {
+		root := taskRoot(t)
+		writePrior(t, root, "pr-3", "01-initial", finding.Report{
+			Sources:  finding.SourceStatus{Expected: 2, Reported: 2},
+			Findings: []finding.Finding{{Severity: finding.Minor, Title: "nit"}},
+			Stats:    finding.Stats{StartedAt: t0},
+		})
+		prepareRound(t, root, "pr-3", "02-next")
+
+		r := newRunOpts(t, options{TasksDir: root, Task: "pr-3", Run: "02-next", Profile: "focused",
+			MaxRounds: 0, NoSynthesis: true, NoVerify: true, NoTUI: true})
+		r.result = cleanResult
+		assert.Equal(t, 0, run(r.opts()))
+		assert.Contains(t, r.stderr.String(), `warning: prior round "01-initial" already passed the gate`)
+		assert.Positive(t, r.attempts())
+	})
+}
+
 type failingWriter struct{}
 
 func (failingWriter) Write([]byte) (int, error) { return 0, errors.New("write failed") }

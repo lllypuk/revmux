@@ -29,6 +29,7 @@ Prefer JSON when a model consumes it. Use `--markdown` only for output going str
      "verdict": "confirmed", "reason": "…"}
   ],
   "open_questions": [], "pre_existing": [], "immaterial": [], "rejected": [],
+  "gate_passed": false, "gating_count": 1,
   "stats": {
     "started_at": "2026-07-26T16:02:11Z", "finished_at": "2026-07-26T16:07:44Z",
     "duration_ms": 333000, "tokens": 184920,
@@ -66,6 +67,17 @@ sources.agents[].raised   how many each returned, before any stage filtered them
 as inconclusive rather than clean. Offer to re-run.
 
 Every source degrading exits `2` — a tool error, not a clean empty report.
+
+## Check `gate_passed` and `gating_count` before looping
+
+```
+gate_passed               true iff sources.degraded is empty and gating_count == 0
+gating_count              count of critical and major items in findings
+```
+
+Exit `1` means **any** finding above `--min-confidence` was reported — including `minor`-only runs. A
+minor-only run with no degraded sources exits `1` **with `gate_passed: true` and `gating_count: 0`**.
+Branch on `gate_passed` (not exit code `1`) when deciding whether the review gate failed.
 
 **`raised: 0` on a source that is not degraded is the other way a run comes back thin, and it does not
 show up in any of the three counts above.** An agent whose tools are broken answers `{"findings": []}`,

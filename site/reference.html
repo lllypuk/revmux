@@ -139,10 +139,12 @@
               <tr><td>--no-tui</td><td></td><td class="prose">disable the terminal UI</td></tr>
               <tr><td>--markdown</td><td></td><td class="prose">write the report as markdown instead of JSON</td></tr>
               <tr><td>--preserve-anthropic-api-key</td><td></td><td class="prose">pass <code>ANTHROPIC_API_KEY</code> to the model CLIs</td></tr>
+              <tr><td>--force</td><td></td><td class="prose">bypass the <code>max-rounds</code> and prior-clean-round guards</td></tr>
               <tr><td>--idle-timeout=&lt;d&gt;</td><td>2m</td><td class="prose">kill and retry an agent after this long with no output; 5m for an agy agent when unset. Also a <a href="#knobs">config key</a></td></tr>
               <tr><td>--hard-timeout=&lt;d&gt;</td><td>20m</td><td class="prose">kill an agent after this long, per attempt. Also a config key</td></tr>
               <tr><td>--stagger-delay=&lt;d&gt;</td><td>30s</td><td class="prose">how long to wait for the first agent before releasing the rest. Also a config key</td></tr>
               <tr><td>--max-parallel=&lt;n&gt;</td><td>6</td><td class="prose">how many agents run at once. Also a config key</td></tr>
+              <tr><td>--max-rounds=&lt;n&gt;</td><td>0</td><td class="prose">maximum completed rounds per task before refusing a new run; 0 disables the limit. Also a config key</td></tr>
               <tr><td>--verify-groups=&lt;n&gt;</td><td>6</td><td class="prose">cap on the number of verifier groups. Also a config key</td></tr>
               <tr><td>--verify-group-by=&lt;k&gt;</td><td>dir</td><td class="prose"><code>dir</code> or <code>source</code>. Also a config key</td></tr>
               <tr><td>--tasks-dir=&lt;dir&gt;</td><td>./.revmux/tasks</td><td class="prose">root directory holding task directories. Also a config key</td></tr>
@@ -159,7 +161,7 @@
 
         <h2 id="knobs">Config keys <a class="anchor" href="#knobs">#</a></h2>
         <p>
-          The nine runtime knobs above also read from <code>./.revmux/config</code> and
+          The eleven runtime knobs above also read from <code>./.revmux/config</code> and
           <code>~/.config/revmux/config</code>, under the same name as the flag, in INI format. Command line
           wins, then project, then user, then the default, merged per key. Every other flag is command line
           only.
@@ -174,6 +176,7 @@
               <tr><td>hard-timeout</td><td>20m</td><td class="prose">kill an agent after this long, per attempt</td></tr>
               <tr><td>stagger-delay</td><td>30s</td><td class="prose">how long to wait for the first agent before releasing the rest</td></tr>
               <tr><td>max-parallel</td><td>6</td><td class="prose">how many agents run at once</td></tr>
+              <tr><td>max-rounds</td><td>0</td><td class="prose">maximum completed rounds per task before refusing a new run; 0 disables the limit</td></tr>
               <tr><td>verify-groups</td><td>6</td><td class="prose">cap on the number of verifier groups</td></tr>
               <tr><td>verify-group-by</td><td>dir</td><td class="prose"><code>dir</code> or <code>source</code></td></tr>
               <tr><td>tasks-dir</td><td>./.revmux/tasks</td><td class="prose">root directory holding task directories</td></tr>
@@ -444,6 +447,8 @@ claude/opus:hgih         <span class="c-crimson">refused: not an effort</span></
               <tr><td>pre_existing[]</td><td class="prose">real, but not introduced by this change</td></tr>
               <tr><td>immaterial[]</td><td class="prose">true and not worth acting on</td></tr>
               <tr><td>rejected[]</td><td class="prose">judged not real, kept with its reason</td></tr>
+              <tr><td>gate_passed</td><td class="prose"><code>true</code> when <code>sources.degraded</code> is empty and <code>gating_count</code> is 0</td></tr>
+              <tr><td>gating_count</td><td class="prose">count of <code>critical</code> and <code>major</code> items in <code>findings</code></td></tr>
               <tr><td>stats</td><td class="prose">timings, total tokens, and per-stage duration, tokens and the runner each resolved to</td></tr>
             </tbody>
           </table>
@@ -488,7 +493,8 @@ claude/opus:hgih         <span class="c-crimson">refused: not an effort</span></
                 <td class="prose">
                   tool error: bad config, unreadable prompt tree, an omitted <code>--run</code>, a round with no
                   <code>input/</code> or an empty <code>scope.md</code>, a round that already ran or is being
-                  written by another run, an unwritable artifact, every source degraded, or a delivered
+                  written by another run, a round refused by <code>--max-rounds</code> or the prior-clean-round
+                  guard, an unwritable artifact, every source degraded, or a delivered
                   <code>SIGINT</code> or <code>SIGTERM</code>
                 </td>
               </tr>

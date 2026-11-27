@@ -20,6 +20,9 @@
 # how many agents run at once
 # max-parallel = 6
 
+# maximum completed rounds per task before refusing a new run without --force; 0 disables the limit
+# max-rounds = 0
+
 # cap on the number of verifier groups
 # verify-groups = 6
 

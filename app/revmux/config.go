@@ -59,11 +59,13 @@ type options struct {
 	NoTUI          bool     `long:"no-tui" no-ini:"true" description:"disable the terminal UI"`
 	Markdown       bool     `long:"markdown" no-ini:"true" description:"write the report as markdown instead of JSON"`
 	PreserveAPIKey bool     `long:"preserve-anthropic-api-key" no-ini:"true" description:"pass ANTHROPIC_API_KEY to the model CLIs"`
+	Force          bool     `long:"force" no-ini:"true" description:"bypass the max-rounds and prior-clean-round guards"`
 
 	IdleTimeout   time.Duration `long:"idle-timeout" ini-name:"idle-timeout" default:"2m" description:"kill and retry an agent after this long with no output"`
 	HardTimeout   time.Duration `long:"hard-timeout" ini-name:"hard-timeout" default:"20m" description:"kill an agent after this long, per attempt"`
 	StaggerDelay  time.Duration `long:"stagger-delay" ini-name:"stagger-delay" default:"30s" description:"how long to wait for the first agent before releasing the rest"`
 	MaxParallel   int           `long:"max-parallel" ini-name:"max-parallel" default:"6" description:"how many agents run at once"`
+	MaxRounds     int           `long:"max-rounds" ini-name:"max-rounds" default:"0" description:"maximum completed rounds per task before refusing a new run; 0 disables the limit"`
 	VerifyGroups  int           `long:"verify-groups" ini-name:"verify-groups" default:"6" description:"cap on the number of verifier groups"`
 	VerifyGroupBy string        `long:"verify-group-by" ini-name:"verify-group-by" choice:"dir" choice:"source" default:"dir" description:"key verifier groups by directory or by the agent that raised the finding"`
 	TasksDir      string        `long:"tasks-dir" ini-name:"tasks-dir" default:"./.revmux/tasks" description:"root directory holding task directories"`

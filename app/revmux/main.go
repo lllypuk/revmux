@@ -203,9 +203,12 @@ func (o runOpts) pipelineConfig() (configuredReview, error) {
 	}
 
 	// resolved before this round is claimed, so the round being written is never in its own inventory
-	history, err := archive.History(rc.TaskDir)
+	hist, err := archive.InspectHistory(rc.TaskDir)
 	if err != nil {
 		return configuredReview{}, fmt.Errorf("read prior rounds: %w", err)
+	}
+	if guardErr := o.checkRoundGuard(hist); guardErr != nil {
+		return configuredReview{}, guardErr
 	}
 	// the tasks root and the task name rather than the joined path resolveContext already checked: a
 	// path string handed over here is one archive.New would have to reopen by name, which is the
@@ -219,13 +222,45 @@ func (o runOpts) pipelineConfig() (configuredReview, error) {
 		NewRunner: o.runnerFactory(rc),
 		Archive:   arc,
 		Clock:     o.clock,
-		Set:       set, Profile: profile, Roster: roster, Vars: rc.vars(), History: history,
+		Set:       set, Profile: profile, Roster: roster, Vars: rc.vars(), History: hist.Text,
 		Task: o.opts.Task, Run: o.opts.Run, ScopePath: rc.Scope,
 		NoSynthesis: o.opts.NoSynthesis, NoVerify: o.opts.NoVerify,
 		StaggerDelay: o.opts.StaggerDelay, RetryDelay: o.retryDelay, MaxParallel: o.opts.MaxParallel,
 		VerifyGroups: o.opts.VerifyGroups, VerifyGroupBy: o.opts.VerifyGroupBy,
 	}
 	return configuredReview{pipeline: cfg, archive: arc, context: rc}, nil
+}
+
+// checkRoundGuard protects against runaway review-fix loops before a round is claimed.
+// When max-rounds > 0 and --force is not set, it refuses once completed rounds reach max-rounds,
+// and refuses a repeat run after a prior round that already passed the gate (0 critical/major, no
+// degraded sources) unless it is a single narrow pre-merge pass (`final` or `hybrid-final`).
+// When max-rounds == 0, a clean prior round emits a stderr warning only.
+func (o runOpts) checkRoundGuard(hist archive.TaskHistory) error {
+	n := len(hist.Rounds)
+	if n == 0 {
+		return nil
+	}
+	if o.opts.MaxRounds > 0 && n >= o.opts.MaxRounds && !o.opts.Force {
+		return fmt.Errorf("task %q already has %d completed rounds (max-rounds=%d); pass --force to run another round",
+			o.opts.Task, n, o.opts.MaxRounds)
+	}
+	last := hist.Rounds[n-1]
+	if !last.GatePassed() || o.opts.Force {
+		return nil
+	}
+	narrowConfirm := o.opts.Profile == "final" || o.opts.Profile == "hybrid-final"
+	prevClean := n >= 2 && hist.Rounds[n-2].GatePassed()
+	if o.opts.MaxRounds > 0 && (!narrowConfirm || prevClean) {
+		return fmt.Errorf("prior round %q already passed the gate (0 critical, 0 major, %d minor); "+
+			"stop here, use --profile hybrid-final/--profile final for a single pre-merge pass, or pass --force",
+			last.Name, last.Minor)
+	}
+	if o.stderr != nil {
+		_, _ = fmt.Fprintf(o.stderr, "warning: prior round %q already passed the gate (0 critical, 0 major, %d minor)\n",
+			last.Name, last.Minor)
+	}
+	return nil
 }
 
 // review runs the pipeline with a renderer subscribed to its events, writes the run's own artifacts,

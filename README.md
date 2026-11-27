@@ -243,13 +243,16 @@ display running.
      "verdict": "confirmed", "reason": "…"}
   ],
   "open_questions": [], "pre_existing": [], "immaterial": [], "rejected": [],
+  "gate_passed": false, "gating_count": 1,
   "stats": {"duration_ms": 333000, "tokens": 184920, "stages": [...]}
 }
 ```
 
 `sources` holds **agent names** and is the only input to the confidence boost. `lenses` holds the lens names
 that raised the finding and is informational: it answers "why was this reported", never "how many
-independently agreed".
+independently agreed". `gate_passed` is `true` only when `sources.degraded` is empty and `gating_count`
+(`critical` + `major` in `findings`) is `0`, so callers can distinguish a clean minor-only exit `1` from a
+gating failure.
 
 | Code | Meaning |
 |---|---|
@@ -343,7 +346,7 @@ when the tty cannot be opened, the same events render as timestamped lines on st
 16:05:12 bugs+impl     done, 6 findings
 16:09:03               ── complete ──
 16:09:03               6m52s, sources 4/4, degraded none
-16:09:03               6 findings: 1 major, 5 minor
+16:09:03               6 findings: 1 major, 5 minor (gate: FAIL, 1 gating)
 ```
 
 [Keys and panes](https://revmux.com/docs#tui) are documented on the site.

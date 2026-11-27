@@ -836,6 +836,7 @@ receives, including what counts as critical, major and minor here.</pre>
               <tr><td>--hard-timeout</td><td>20m</td><td class="prose">kill an agent after this long, per attempt</td></tr>
               <tr><td>--stagger-delay</td><td>30s</td><td class="prose">how long to wait for the first agent before releasing the rest</td></tr>
               <tr><td>--max-parallel</td><td>6</td><td class="prose">how many agents run at once</td></tr>
+              <tr><td>--max-rounds</td><td>0</td><td class="prose">maximum completed rounds per task before refusing a new run; 0 disables the limit (also guards against re-running after a clean prior round unless running a single <code>final</code>/<code>hybrid-final</code> pass or passing <code>--force</code>)</td></tr>
               <tr><td>--verify-groups</td><td>6</td><td class="prose">cap on the number of verifier groups</td></tr>
               <tr><td>--verify-group-by</td><td>dir</td><td class="prose">key verifier groups by directory or by the agent that raised the finding</td></tr>
               <tr><td>--tasks-dir</td><td>./.revmux/tasks</td><td class="prose">root directory holding task directories</td></tr>
@@ -878,6 +879,7 @@ receives, including what counts as critical, major and minor here.</pre>
      "verdict": "confirmed", "reason": "..."}
   ],
   "open_questions": [], "pre_existing": [], "immaterial": [], "rejected": [],
+  "gate_passed": false, "gating_count": 1,
   "stats": {
     "started_at": "2026-07-26T16:02:11Z", "finished_at": "2026-07-26T16:07:44Z",
     "duration_ms": 333000, "tokens": 184920,
@@ -909,6 +911,12 @@ receives, including what counts as critical, major and minor here.</pre>
           so it lists only the stages done by then, and its entries add up to its own <code>stats.tokens</code>.
           Counts are not the same quantity across executors, and find's may add up claude, codex and agy agents
           together, so compare stage counts only within one executor.
+        </p>
+        <p>
+          <code>gate_passed</code> is <code>true</code> when <code>sources.degraded</code> is empty and
+          <code>gating_count</code> (the count of <code>critical</code> and <code>major</code> items in
+          <code>findings</code>) is zero. Callers use it instead of exit code <code>1</code> to decide whether a
+          minor-only round already passed the review gate.
         </p>
         <p>
           <code>--min-confidence</code> filters once, before anything renders, and the printed report, the
@@ -1100,7 +1108,7 @@ receives, including what counts as critical, major and minor here.</pre>
 16:05:40               ── synthesis ──
 16:09:03               ── complete ──
 16:09:03               6m52s, sources 4/4, degraded none
-16:09:03               6 findings: 1 major, 5 minor</pre>
+16:09:03               6 findings: 1 major, 5 minor (gate: FAIL, 1 gating)</pre>
         <p>
           The closing three lines are written after the last event, to say what the run came to. They carry
           counts only: the findings themselves go to stdout, and a degraded run names its missing sources here
