@@ -87,13 +87,13 @@ The existing executor supplies stream-json input/output, native stage schemas, n
 - Create outside the repository: a timestamped backup of the previous `/home/sasha/.local/bin/revmux` under `/tmp`
 - Modify outside the repository: `/home/sasha/.local/bin/revmux` (replaced with symlink to `.bin/revmux` via `make install`)
 
-- [ ] Record `git status --short --branch`; preserve all unrelated work and expect no source change from this plan.
-- [ ] Run outside the sandbox (with `mise` and local proxy `127.0.0.1:2080` reachable): confirm `command -v agy` succeeds and `agy --version` reports an installed CLI.
-- [ ] Run `make test` and `go vet ./...` and require both to pass before touching any user config or installed binary.
-- [ ] Run `make build` and require `.bin/revmux` to build successfully.
-- [ ] Back up the existing `/home/sasha/.local/bin/revmux` to a timestamped file under `/tmp`, then run `BINDIR="$HOME/.local/bin" make install` so `/home/sasha/.local/bin/revmux` symlinks to `$PWD/.bin/revmux`.
-- [ ] Run `revmux config | jq -e '.vocabulary.executors == ["claude", "codex", "agy", "pi"]'` (using `revmux` directly from `PATH`, not a `PATH` override) and require a match.
-- [ ] Run `revmux config | jq -e '.profiles[] | select(.name == "comprehensive-plus") | .roster[] | select(.name == "adversarial-agy" and .executor == "agy" and .model == "gemini-4-neon" and .effort == "high")'` and require a match.
+- [x] Record `git status --short --branch`; preserve all unrelated work and expect no source change from this plan.
+- [x] Run outside the sandbox (with `mise` and local proxy `127.0.0.1:2080` reachable): confirm `command -v agy` succeeds and `agy --version` reports an installed CLI.
+- [x] Run `make test` and `go vet ./...` and require both to pass before touching any user config or installed binary.
+- [x] Run `make build` and require `.bin/revmux` to build successfully.
+- [x] Back up the existing `/home/sasha/.local/bin/revmux` to a timestamped file under `/tmp`, then run `BINDIR="$HOME/.local/bin" make install` so `/home/sasha/.local/bin/revmux` symlinks to `$PWD/.bin/revmux`.
+- [x] Run `revmux config | jq -e '.vocabulary.executors == ["claude", "codex", "agy", "pi"]'` (using `revmux` directly from `PATH`, not a `PATH` override) and require a match.
+- [x] Run `revmux config | jq -e '.profiles[] | select(.name == "comprehensive-plus") | .roster[] | select(.name == "adversarial-agy" and .executor == "agy" and .model == "gemini-4-neon" and .effort == "high")'` and require a match.
 
 ### Task 2: Create the `hybrid` user profile and set it as default
 
