@@ -102,6 +102,14 @@ same flags: the task match and `revmux new` in Step 2's brief, the launch in Ste
 configuration the run loads. `analyze-corpus.py` takes no `--config-dir`: give it `--tasks-dir` with
 the `paths.tasks_dir` that `revmux config` reports under those flags.
 
+**7. When `agterm` is available, run every review in its own companion session in the same workspace, and close it when done.**
+Check `AGTERM_ENABLED=1`, non-empty `AGTERM_SESSION_ID`, and `command -v agtermctl >/dev/null`. When available,
+launch `revmux` in a dedicated companion session via `agtermctl session new --parent "$AGTERM_SESSION_ID"`
+(a companion automatically stays in the parent's workspace; never pass `--workspace` alongside `--parent`),
+wait for completion, read the exit code and JSON report, and **close the companion session** with
+`agtermctl session close --target <companion-sid>` so finished review sessions do not accumulate.
+Direct background execution is the fallback when `agterm` is unavailable.
+
 ## Workflow
 
 ### Step 0: Preflight
@@ -404,11 +412,49 @@ cross-source confidence boost. Prefer a profile unless narrowing is specifically
 
 Also useful: `--min-confidence=70` for actionable-only, `--no-verify` when a human reads everything.
 
-### Step 4: Run it — headless or overlay
+### Step 4: Run it — agterm companion session, headless, or overlay
 
-Both return the same report on stdout and the same exit code.
+All forms return the same report on stdout and the same exit code.
 
-**Headless — the default:**
+**agterm companion session — mandatory when `AGTERM_ENABLED=1`, `AGTERM_SESSION_ID` is set, and `agtermctl` is on `PATH`:**
+
+Run each review in a dedicated companion session in the same workspace (never pass `--workspace` with
+`--parent`; the companion inherits the parent's workspace automatically):
+
+1. Write an executable wrapper `/tmp/revmux-run-<id>-<run>.sh` with literal paths/flags (and pass
+   `--socket "$AGTERM_SOCKET"` whenever `AGTERM_SOCKET` is set):
+   ```bash
+   #!/usr/bin/env bash
+   set -u
+   revmux --task <id> --run <name> --no-tui [extra flags] \
+     > /tmp/revmux-<id>-<run>.json 2> /tmp/revmux-<id>-<run>.log
+   rc=$?
+   printf '%s\n' "$rc" > /tmp/revmux-<id>-<run>.rc
+   status="completed"
+   if [ "$rc" -ne 0 ] && [ "$rc" -ne 1 ]; then
+     status="blocked"
+   fi
+   agtermctl session status "$status" --target "$AGTERM_SESSION_ID" ${AGTERM_SOCKET:+--socket "$AGTERM_SOCKET"} || true
+   exit "$rc"
+   ```
+2. Make it executable (`chmod +x`) and create the companion session in the same workspace, capturing `<companion-sid>`:
+   ```bash
+   agtermctl session new --parent "$AGTERM_SESSION_ID" --cwd "$PWD" \
+     --name "revmux <id>-<run>" --command "/tmp/revmux-run-<id>-<run>.sh" \
+     --wait --no-select ${AGTERM_SOCKET:+--socket "$AGTERM_SOCKET"}
+   ```
+3. Launch `agtermctl session wait` as a yielded command session and wait on it until `completed` or `blocked`:
+   ```bash
+   agtermctl session wait --target <companion-sid> --until completed --until blocked \
+     ${AGTERM_SOCKET:+--socket "$AGTERM_SOCKET"}
+   ```
+4. Once `session wait` returns, read `/tmp/revmux-<id>-<run>.rc` and `/tmp/revmux-<id>-<run>.json`, and
+   **close the companion session** (also close it on error or abort so stale sessions are not left open):
+   ```bash
+   agtermctl session close --target <companion-sid> ${AGTERM_SOCKET:+--socket "$AGTERM_SOCKET"}
+   ```
+
+**Headless — fallback when `agterm` is unavailable:**
 
 ```bash
 revmux --task <id> --run <name> --no-tui > /tmp/revmux-<id>-<run>.json 2> /tmp/revmux-<id>-<run>.log
